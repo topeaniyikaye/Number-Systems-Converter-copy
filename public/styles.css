@@ -31,6 +31,7 @@ main{
     max-width: 1400px;
     margin: auto;
 }
+
 .background-circle{
     background-color: #4d4c51d5;
     width: 400px;
@@ -231,7 +232,7 @@ border-color: #A7A6AB;
     /* Frame 10 */
 padding: 12px;
 width: auto;
-height: 43px;
+min-height: 43px;
 background: rgba(92, 92, 92, 0.5);
 border-radius: 4px;
 
@@ -383,6 +384,7 @@ transform: rotate(15deg);
     }
     h1{
         margin-bottom: 16px;
+        font-size: 3rem;
     }
 
     header {
@@ -424,4 +426,12 @@ transform: rotate(15deg);
         font-size: 16px;
         height: 44px;
     }
+
+    .result h2 {
+        min-width: 100%;
+        font-size: 3em;
+        word-wrap: break-word;
+        line-height: normal;
+        
+        }
 }
