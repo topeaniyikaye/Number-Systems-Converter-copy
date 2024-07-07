@@ -1,74 +1,66 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const path = require('path');
-const cors = require('cors');
-const converter = require('./converter');  // Importing module for conversion functions
-const db = require('./db');  // Importing database module
-const History = require('./history');  // Importing History model
+// Add an event listener to the form for the submit event
+document.getElementById('converter-form').addEventListener('submit', async (e) => {
+    // Prevent the default form submission behavior
+    e.preventDefault();
 
-const app = express();  // Creating express application
-app.use(bodyParser.json());  // Parsing JSON bodies for POST requests
-app.use(cors());  // Enabling Cross-Origin Resource Sharing
+    // Get the values from the form inputs
+    const number = document.getElementById('number').value;
+    const fromBase = document.getElementById('fromBase').value;
+    const toBase = document.getElementById('toBase').value;
 
-// Serving static files from the 'public' directory
-app.use(express.static(path.join(__dirname, 'public')));
+    try {
+        // Send a POST request to the server to perform the conversion
+        const response = await fetch('/convert', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            // Send the number and base information as JSON
+            body: JSON.stringify({ number, fromBase, toBase }),
+        });
 
-// Route for serving the index.html file
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+        // Parse the response JSON data
+        const data = await response.json();
+        // Update the result value on the page
+        document.getElementById('resultValue').innerText = data.result;
+        // Make the result section visible
+        document.getElementById('result').style.display = 'block';
 
-// POST endpoint for conversion
-app.post('/convert', async (req, res) => {
-    const { number, fromBase, toBase } = req.body;
-
-    let decimal;
-    // Converting input number from specified base to decimal
-    switch (fromBase) {
-        case 'binary':
-            decimal = converter.binaryToDecimal(number);
-            break;
-        case 'hexadecimal':
-            decimal = converter.hexadecimalToDecimal(number);
-            break;
-        case 'octal':
-            decimal = converter.octalToDecimal(number);
-            break;
-        default:
-            decimal = parseInt(number, 10);  // Assuming input is already in decimal
+        // Fetch and update the conversion history
+        fetchHistory();
+    } catch (error) {
+        // Log and alert the user if an error occurs
+        console.error('Error:', error);
+        alert('An error occurred.');
     }
+});
 
-    let result;
-    // Converting decimal number to specified base
-    switch (toBase) {
-        case 'binary':
-            result = converter.decimalToBinary(decimal);
-            break;
-        case 'hexadecimal':
-            result = converter.decimalToHexadecimal(decimal);
-            break;
-        case 'octal':
-            result = converter.decimalToOctal(decimal);
-            break;
-        default:
-            result = decimal;  // Returning decimal if base not recognized
+// Function to fetch and display the conversion history
+async function fetchHistory() {
+    try {
+        // Send a GET request to the server to fetch history
+        const response = await fetch('/history');
+        // Parse the response JSON data
+        const history = await response.json();
+        // Get the history list element
+        const historyList = document.getElementById('historyList');
+        // Clear any existing list items
+        historyList.innerHTML = '';
+
+        // Loop through each history entry and create a list item
+        history.forEach(entry => {
+            const li = document.createElement('li');
+            // Set the list item text to display the history entry details
+            li.textContent = `${entry.number} (${entry.fromBase}) to ${entry.result} (${entry.toBase}) on ${new Date(entry.date).toLocaleString()}`;
+            // Append the list item to the history list
+            historyList.appendChild(li);
+        });
+    } catch (error) {
+        // Log and alert the user if an error occurs while fetching history
+        console.error('Error:', error);
+        alert('An error occurred while fetching history.');
     }
+}
 
-    // Saving conversion history to database
-    const historyEntry = new History({ number, fromBase, toBase, result: result.toString() });
-    await historyEntry.save();
-
-    res.json({ result });  // Sending JSON response with conversion result
-});
-
-// GET endpoint for retrieving conversion history
-app.get('/history', async (req, res) => {
-    // Fetching last 10 history entries sorted by date
-    const history = await History.find().sort({ date: -1 }).limit(10);
-    res.json(history);  // Sending JSON response with history data
-});
-
-const PORT = process.env.PORT || 3002;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);  // Logging server start message
-});
+// Fetch and display history when the page is loaded
+document.addEventListener('DOMContentLoaded', fetchHistory);
